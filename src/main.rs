@@ -216,7 +216,7 @@ fn main() -> Result<()> {
         active_item_style: Some(
             StyleBuilder::new()
                 .fgc(Color::Grey)
-                .bgc(Color::Yellow)
+                .bgc(Color::DarkBlue)
                 .build(),
         ),
         inactive_item_style: Some(StyleBuilder::new().fgc(Color::Grey).build()),
