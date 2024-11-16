@@ -123,6 +123,10 @@ pub struct Args {
         "
     )]
     pub suggestion_list_length: usize,
+
+    /// Search string to locate in JSON
+    #[arg(short = 'S', long = "search", value_name = "SEARCH")]
+    pub search: Option<String>,
 }
 
 fn edit_mode_validator(val: &str) -> Result<text_editor::Mode> {
@@ -183,8 +187,83 @@ fn deserialize_json(
     results.map_err(anyhow::Error::from)
 }
 
+fn search_in_json(
+    value: &serde_json::Value, 
+    target: &str, 
+    path: &mut Vec<String>, 
+    results: &mut Vec<String>
+) {
+    // Check if key name matches
+    if let Some(key) = path.last() {
+        if key == target {
+            results.push(path.join("."));
+        }
+    }
+
+    match value {
+        serde_json::Value::Object(map) => {
+            for (k, v) in map {
+                path.push(k.clone());
+                // Recursively search values
+                search_in_json(v, target, path, results);
+                path.pop();
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for (i, v) in arr.iter().enumerate() {
+                path.push(format!("[{}]", i));
+                search_in_json(v, target, path, results);
+                path.pop();
+            }
+        }
+        serde_json::Value::String(s) => {
+            if s == target {
+                results.push(path.join("."));
+            }
+        }
+        serde_json::Value::Number(n) => {
+            // Support number search
+            if n.to_string() == target {
+                results.push(path.join("."));
+            }
+        }
+        serde_json::Value::Bool(b) => {
+            // Support boolean search
+            if b.to_string() == target {
+                results.push(path.join("."));
+            }
+        }
+        serde_json::Value::Null => {
+            // Support null value search
+            if target == "null" {
+                results.push(path.join("."));
+            }
+        }
+    }
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
+
+    if let Some(ref search_term) = args.search {
+        let input = parse_input(&args)?;
+        let json: serde_json::Value = serde_json::from_str(&input)?;
+        
+
+        let mut results = Vec::new();
+        let mut path = Vec::new();
+        search_in_json(&json, &search_term, &mut path, &mut results);
+
+        if results.is_empty() {
+            println!("No matches found for: {}", search_term);
+        } else {
+            println!("Found {} matches:", results.len());
+            for path in results {
+                println!("Path: .{}", path);
+            }
+        }
+        return Ok(());
+    }
 
     let input = parse_input(&args)?;
     let input_stream = deserialize_json(&input, args.json_limit_length)?;
