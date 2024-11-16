@@ -18,7 +18,7 @@ pub fn default(event: &Event, jnv: &mut crate::jnv::Jnv) -> anyhow::Result<Promp
         }) => {
             let query = filter_editor.texteditor.text_without_cursor().to_string();
             if let Some(mut candidates) = jnv.suggest.prefix_search(query) {
-                candidates.sort_by(|a, b| a.len().cmp(&b.len()).then_with(|| a.cmp(b)));
+                candidates.sort_by(|a, b| a.cmp(b).then_with(|| a.len().cmp(&b.len())));
 
                 jnv.suggestions.listbox = Listbox::from_iter(candidates);
                 filter_editor
